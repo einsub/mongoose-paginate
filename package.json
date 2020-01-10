@@ -1,7 +1,7 @@
 {
   "name": "mongoose-paginate",
   "description": "Pagination plugin for Mongoose",
-  "version": "5.0.2",
+  "version": "5.0.3",
   "author": {
     "name": "Edward Hotchkiss",
     "email": "edward@edwardhotchkiss.com"
