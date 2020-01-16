@@ -41,9 +41,20 @@ function paginate(query, options, callback) {
     }
 
     var promises = {
-        docs:  Promise.resolve([]),
-        count: this.countDocuments? this.countDocuments(query).exec() : this.count(query).exec()
-    };
+      docs:  Promise.resolve([]),
+      count: (() => {
+          if (query === {}) {
+              if (this.estimatedDocumentCount) {
+                  return this.estimatedDocumentCount()
+              } else {
+                  var fullQuery = { _id: { $ne: null }}
+                  return this.countDocuments? this.countDocuments(fullQuery).exec() : this.count(fullQuery).exec()
+              }
+          } else {
+              this.countDocuments? this.countDocuments(query).exec() : this.count(query).exec()
+          }
+      })()
+  };
 
     if (limit) {
         var query = this.find(query)
