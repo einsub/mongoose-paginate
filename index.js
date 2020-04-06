@@ -11,6 +11,7 @@ var Promise = require('bluebird');
  * @param {Number}                [options.offset=0] - Use offset or page to set skip position
  * @param {Number}                [options.page=1]
  * @param {Number}                [options.limit=10]
+ * @param {Number}                [options.totalLimit=300]
  * @param {Function}            [callback]
  *
  * @returns {Promise}
@@ -26,6 +27,7 @@ function paginate(query, options, callback) {
     var leanWithId = options.hasOwnProperty('leanWithId') ? options.leanWithId : true;
 
     var limit = options.hasOwnProperty('limit') ? options.limit : 10;
+    var totalLimit = options.hasOwnProperty('totalLimit') ? options.totalLimit : 300;
     var skip, offset, page;
 
     if (options.hasOwnProperty('offset')) {
@@ -39,29 +41,25 @@ function paginate(query, options, callback) {
         page   = 1;
         skip   = offset;
     }
+    var adjustedLimit = ((totalLimit - skip) < limit) ? ((totalLimit - skip < 0) ? 0 : totalLimit - skip) : limit;
 
     var promises = {
         docs:  Promise.resolve([]),
         count: (() => {
-            if (Object.keys(query).length === 0 && query.constructor === Object) {
-                if (this.estimatedDocumentCount) {
-                    return this.estimatedDocumentCount()
-                } else {
-                    var fullQuery = { _id: { $ne: null }}
-                    return this.countDocuments? this.countDocuments(fullQuery).exec() : this.count(fullQuery).exec()
-                }
-            } else {
-                return this.countDocuments? this.countDocuments(query).exec() : this.count(query).exec()
-            }
+            return new Promise((resolve) => {
+                this.find(query).select({ _id: 1 }).sort(sort).limit(totalLimit).lean(true).exec().then((items => {
+                    return resolve(items.length)
+                }))
+            })
         })()
     };
 
-    if (limit) {
+    if (adjustedLimit) {
         var query = this.find(query)
                         .select(select)
                         .sort(sort)
                         .skip(skip)
-                        .limit(limit)
+                        .limit(adjustedLimit)
                         .lean(lean);
 
         if (populate) {
