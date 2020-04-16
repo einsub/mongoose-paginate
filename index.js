@@ -50,7 +50,7 @@ function paginate(query, options, callback) {
                     if (items.length > 0) {
                         return resolve(totalLimit)
                     } else {
-                        return resolve(null)
+                        return resolve(this.countDocuments(query).exec().then(count => count))
                     }
                 }))
             })
@@ -58,7 +58,7 @@ function paginate(query, options, callback) {
     };
 
     if (adjustedLimit) {
-        var query = this.find(query)
+        var findQuery = this.find(query)
                         .select(select)
                         .sort(sort)
                         .skip(skip)
@@ -67,11 +67,11 @@ function paginate(query, options, callback) {
 
         if (populate) {
             [].concat(populate).forEach(function(item) {
-                query.populate(item);
+                findQuery.populate(item);
             });
         }
 
-        promises.docs = query.exec();
+        promises.docs = findQuery.exec();
 
         if (lean && leanWithId) {
             promises.docs = promises.docs.then(function(docs) {
@@ -86,9 +86,6 @@ function paginate(query, options, callback) {
 
     return Promise.props(promises)
         .then(function(data) {
-            if (data.count === null) {
-                data.count = data.docs.length
-            }
             var result = {
                 docs:  data.docs,
                 total: data.count,
