@@ -25,8 +25,7 @@ function paginate(query, options, callback) {
     var populate   = options.populate;
     var lean       = options.lean || false;
     var leanWithId = options.hasOwnProperty('leanWithId') ? options.leanWithId : true;
-
-    var limit = options.hasOwnProperty('limit') ? options.limit : 10;
+    var limit      = options.hasOwnProperty('limit') ? options.limit : 10;
     var totalLimit = options.hasOwnProperty('totalLimit') ? options.totalLimit : 300;
     var skip, offset, page;
 
@@ -47,15 +46,19 @@ function paginate(query, options, callback) {
         docs:  Promise.resolve([]),
         count: (() => {
             return new Promise((resolve) => {
-                this.find(query).select({ _id: 1 }).sort(sort).limit(totalLimit).lean(true).exec().then((items => {
-                    return resolve(items.length)
+                this.find(query).select({ _id: 1 }).sort(sort).skip(totalLimit - 1).limit(1).lean(true).exec().then((items => {
+                    if (items.length > 0) {
+                        return resolve(totalLimit)
+                    } else {
+                        return resolve(this.countDocuments(query).exec().then(count => count))
+                    }
                 }))
             })
         })()
     };
 
     if (adjustedLimit) {
-        var query = this.find(query)
+        var findQuery = this.find(query)
                         .select(select)
                         .sort(sort)
                         .skip(skip)
@@ -64,11 +67,11 @@ function paginate(query, options, callback) {
 
         if (populate) {
             [].concat(populate).forEach(function(item) {
-                query.populate(item);
+                findQuery.populate(item);
             });
         }
 
-        promises.docs = query.exec();
+        promises.docs = findQuery.exec();
 
         if (lean && leanWithId) {
             promises.docs = promises.docs.then(function(docs) {
