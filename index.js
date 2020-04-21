@@ -46,7 +46,7 @@ function paginate(query, options, callback) {
         docs:  Promise.resolve([]),
         count: (() => {
             return new Promise((resolve) => {
-                this.find(query).select({ _id: 1 }).sort(sort).skip(totalLimit - 1).limit(1).lean(true).exec().then((items => {
+                this.find(query).select({ _id: 1 }).skip(totalLimit - 1).limit(1).lean(true).exec().then((items => {
                     if (items.length > 0) {
                         return resolve(totalLimit)
                     } else {
